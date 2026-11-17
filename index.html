@@ -331,8 +331,8 @@ const $ = id => document.getElementById(id);
    Preencha as duas linhas abaixo com os dados do seu projeto (Project Settings > API).
    A chave "anon/publishable" é pública por desenho: quem protege os dados são as regras do banco (supabase/schema.sql).
    Em branco, o sistema roda em modo local, sem salvar. */
-const SUPABASE_URL = '';
-const SUPABASE_KEY = '';
+const SUPABASE_URL = 'https://wtavwccnkmrxddkoouic.supabase.co';
+const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Ind0YXZ3Y2Nua21yeGRka29vdWljIiwicm9sZSI6ImFub24iLCJpYXQiOjE3OTQ0MTI4MTIsImV4cCI6MjEwOTk4ODgxMn0.e0z0ZpUx-lkoep8EgnViLl8jMdOh7fM2f_Unhc1wwiA';
 const CONFIGURED = !!(SUPABASE_URL && SUPABASE_KEY);
 const DB = CONFIGURED && window.supabase ? window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY) : null;
 let session = null, busy = false;

@@ -19,6 +19,8 @@ Com o Supabase configurado, o sistema pede e-mail e senha e grava clientes e ser
 
 A chave anon é pública por desenho; quem protege os dados são as regras do banco. Nunca coloque a chave `service_role` no `index.html`.
 
+Este repositório já está configurado para o projeto Supabase `registro-equipamentos` (região São Paulo). Para usar outro projeto, repita os passos acima.
+
 Sem essas duas linhas preenchidas, o sistema abre em **modo local**: funciona, mas não salva nada.
 
 ## Limitações
