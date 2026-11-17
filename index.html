@@ -1,0 +1,769 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Registro de Equipamentos</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@500;600;700&family=IBM+Plex+Sans:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+:root{
+  /* layout: faixa de contadores no topo; depois formulário em cadeia (4 etapas) ao lado da matriz 2x2; empilha em uma coluna no celular */
+  --bg:#e9edf0; --surface:#ffffff; --surface-2:#f3f5f7; --ink:#17212b; --muted:#536170; --line:#cbd3da;
+  --accent:#0e5a78; --accent-ink:#ffffff; --accent-soft:#dcebf1;
+  --ok:#1b6f45; --ok-soft:#dcf0e5; --warn:#7d5200; --warn-soft:#faeac6; --bad:#a02e27; --bad-soft:#f7dcd9;
+  --q1:#e1f0e7; --q2:#dfe9f5; --q3:#f5efd8; --q4:#e9ecef;
+  --font-display:'Barlow Condensed','Arial Narrow',Arial,sans-serif;
+  --font-body:'IBM Plex Sans',system-ui,-apple-system,'Segoe UI',sans-serif;
+  --r:6px;
+}
+@media (prefers-color-scheme: dark){
+  :root:not([data-theme="light"]){
+    color-scheme:dark;
+    --bg:#11171d; --surface:#192129; --surface-2:#202a33; --ink:#e5ebf0; --muted:#9aa8b5; --line:#33404c;
+    --accent:#62b8d9; --accent-ink:#06222d; --accent-soft:#16384a;
+    --ok:#74d19f; --ok-soft:#163326; --warn:#e8b84e; --warn-soft:#3a2d0f; --bad:#f08d85; --bad-soft:#40201d;
+    --q1:#162d21; --q2:#17273a; --q3:#2e2913; --q4:#212930;
+  }
+}
+:root[data-theme="dark"]{
+  color-scheme:dark;
+  --bg:#11171d; --surface:#192129; --surface-2:#202a33; --ink:#e5ebf0; --muted:#9aa8b5; --line:#33404c;
+  --accent:#62b8d9; --accent-ink:#06222d; --accent-soft:#16384a;
+  --ok:#74d19f; --ok-soft:#163326; --warn:#e8b84e; --warn-soft:#3a2d0f; --bad:#f08d85; --bad-soft:#40201d;
+  --q1:#162d21; --q2:#17273a; --q3:#2e2913; --q4:#212930;
+}
+*{box-sizing:border-box}
+html,body{margin:0}
+body{background:var(--bg);color:var(--ink);font-family:var(--font-body);font-size:15px;line-height:1.45}
+.wrap{max-width:900px;margin:0 auto;padding:20px 16px 48px;display:flex;flex-direction:column;gap:16px}
+h1,h2,h3{font-family:var(--font-display);margin:0;text-wrap:balance;letter-spacing:.01em}
+h1{font-size:2rem;font-weight:700;line-height:1.05;text-transform:uppercase}
+h2{font-size:1.35rem;font-weight:600;text-transform:uppercase}
+h3{font-size:1.15rem;font-weight:600}
+p{margin:0}
+.sub{color:var(--muted);font-size:.9rem}
+header.top{display:flex;flex-wrap:wrap;gap:12px 24px;align-items:flex-end;justify-content:space-between}
+.counters{display:flex;flex-wrap:wrap;gap:8px}
+.counter{background:var(--surface);border:1px solid var(--line);border-radius:var(--r);padding:6px 12px;display:flex;gap:8px;align-items:baseline}
+.counter b{font-family:var(--font-display);font-size:1.4rem;font-variant-numeric:tabular-nums}
+.counter span{font-size:.8rem;color:var(--muted)}
+.cols{display:block}
+
+.panel{background:var(--surface);border:1px solid var(--line);border-radius:var(--r);padding:16px;display:flex;flex-direction:column;gap:14px}
+.panel-head{display:flex;flex-wrap:wrap;gap:8px 16px;justify-content:space-between;align-items:center}
+.fields{display:grid;grid-template-columns:2fr 1fr;gap:10px}
+@media (max-width:480px){.fields{grid-template-columns:1fr}}
+.field{display:flex;flex-direction:column;gap:4px}
+.field label,.legend{font-size:.78rem;font-weight:600;color:var(--muted);text-transform:uppercase;letter-spacing:.04em}
+input[type=text],select{font:inherit;color:var(--ink);background:var(--surface-2);border:1px solid var(--line);border-radius:var(--r);padding:9px 10px;width:100%;min-width:0}
+input[type=checkbox],input[type=radio]{accent-color:var(--accent);width:18px;height:18px;flex:none;margin:1px 0 0}
+:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+button{font:inherit;cursor:pointer;border-radius:var(--r);border:1px solid var(--line);background:var(--surface-2);color:var(--ink);padding:8px 12px}
+button.primary{background:var(--accent);color:var(--accent-ink);border-color:var(--accent);font-weight:600}
+button.danger{color:var(--bad);border-color:var(--bad)}
+button:disabled{opacity:.45;cursor:not-allowed}
+button.icon{padding:4px 8px;line-height:1.2}
+.stepper .t{hyphens:none}
+@media (max-width:520px){.stepper{grid-template-columns:repeat(2,minmax(0,1fr))}.stepper .t{overflow-wrap:normal}}
+.panel[hidden],.ctx[hidden]{display:none}
+.tabs{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:6px}
+.tabs[hidden],.ws[hidden]{display:none}
+.ws{display:flex;flex-wrap:wrap;gap:10px 16px;align-items:center;justify-content:space-between;background:var(--surface);border:1px solid var(--line);border-left:4px solid var(--accent);border-radius:var(--r);padding:10px 14px}
+.who{display:flex;gap:10px;align-items:center;min-width:0}
+.who-t{display:flex;flex-direction:column;min-width:0;overflow-wrap:anywhere}
+.avatar{flex:none;width:40px;height:40px;border-radius:50%;background:var(--accent);color:var(--accent-ink);display:grid;place-items:center;font-family:var(--font-display);font-weight:700;font-size:1.1rem;letter-spacing:.03em}
+.filters{display:grid;grid-template-columns:repeat(auto-fit,minmax(170px,1fr));gap:10px}
+.srows{list-style:none;margin:0;padding:0;display:flex;flex-direction:column;gap:8px}
+.srow{border:1px solid var(--line);border-left-width:4px;border-radius:var(--r);background:var(--surface-2);min-width:0}
+.srow.q1{border-left-color:var(--bad)} .srow.q2{border-left-color:var(--warn)} .srow.q3{border-left-color:var(--accent)}
+.shead{width:100%;display:flex;gap:10px;align-items:center;text-align:left;background:transparent;border:0;padding:10px 12px}
+.shead .who-t{flex:1}
+.shead .meta{font-size:.8rem;color:var(--muted)}
+.pn{flex:none;font-family:var(--font-display);font-weight:700;font-size:1.3rem;line-height:1;width:2rem;height:2rem;display:grid;place-items:center;border-radius:var(--r);background:var(--surface);border:1px solid var(--line)}
+.sbody{padding:0 12px 12px;display:flex;flex-direction:column;gap:10px}
+.sbody select{width:auto}
+.cards{list-style:none;margin:0;padding:0;display:grid;grid-template-columns:repeat(auto-fill,minmax(250px,1fr));gap:12px}
+.card{border:1px solid var(--line);border-radius:var(--r);padding:14px;display:flex;flex-direction:column;gap:10px;background:var(--surface-2);min-width:0}
+.card.on{border-color:var(--accent)}
+.card .meta{font-size:.82rem;color:var(--muted);overflow-wrap:anywhere}
+.card .row{margin-top:auto}
+.pform{border:1px solid var(--accent);border-radius:var(--r);padding:14px;display:flex;flex-direction:column;gap:10px;background:var(--accent-soft)}
+.pform input{background:var(--surface)}
+.tabs button{display:flex;gap:6px;align-items:baseline;justify-content:center;padding:10px 6px;background:var(--surface);border-bottom-width:3px;font-weight:500}
+.tabs .n{font-family:var(--font-display);font-weight:700;font-size:1.1rem}
+.tabs button[aria-current="page"]{background:var(--accent-soft);border-color:var(--accent)}
+.ctx{display:flex;flex-wrap:wrap;gap:8px 12px;align-items:center;justify-content:space-between;background:var(--surface);border:1px solid var(--line);border-left:3px solid var(--accent);border-radius:var(--r);padding:8px 12px;font-size:.9rem}
+.ctx span{overflow-wrap:anywhere;min-width:0}
+.clients li.on{border-color:var(--accent);background:var(--accent-soft)}
+.clients{list-style:none;margin:0;padding:0;display:flex;flex-direction:column;gap:6px}
+.clients li{display:flex;flex-wrap:wrap;gap:6px 10px;align-items:center;border:1px solid var(--line);border-radius:var(--r);padding:8px 10px}
+.clients .nm{flex:1;min-width:120px;font-weight:500;overflow-wrap:anywhere}
+.clients .ct{font-size:.78rem;color:var(--muted);font-variant-numeric:tabular-nums}
+#client-manage{display:flex;flex-direction:column;gap:10px}
+#client-manage[hidden]{display:none}
+.chip .cl{font-size:.7rem;color:var(--muted)}
+.switch{display:flex;gap:8px;align-items:center;font-size:.85rem;cursor:pointer}
+
+.stepper{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:6px;list-style:none;margin:0;padding:0}
+.stepper button{width:100%;display:flex;flex-direction:column;align-items:flex-start;gap:2px;padding:8px;text-align:left;border-bottom-width:3px}
+.stepper .n{font-family:var(--font-display);font-size:1.25rem;font-weight:700;line-height:1}
+.stepper .t{font-size:.76rem;overflow-wrap:anywhere}
+.stepper .c{font-size:.72rem;color:var(--muted);font-variant-numeric:tabular-nums}
+.stepper button[aria-current="step"]{background:var(--accent-soft);border-color:var(--accent)}
+.stepper button.done{border-bottom-color:var(--ok)}
+
+.note{background:var(--accent-soft);border-left:3px solid var(--accent);padding:8px 10px;font-size:.86rem;border-radius:0 var(--r) var(--r) 0}
+.empty{color:var(--muted);font-size:.9rem;padding:8px 0}
+ul.items{list-style:none;margin:0;padding:0;display:flex;flex-direction:column;gap:6px}
+.item{display:flex;gap:8px;align-items:flex-start;border:1px solid var(--line);border-radius:var(--r);padding:8px 10px;background:var(--surface)}
+.item.on{border-color:var(--accent);background:var(--accent-soft)}
+.item label{display:flex;gap:10px;align-items:flex-start;flex:1;min-width:0;cursor:pointer}
+.item .txt{display:flex;flex-direction:column;min-width:0;overflow-wrap:anywhere}
+.item small{color:var(--muted);font-size:.76rem}
+.tag{font-size:.68rem;font-weight:600;text-transform:uppercase;letter-spacing:.04em;padding:2px 6px;border-radius:3px;white-space:nowrap;margin-top:1px}
+.tag.sug{background:var(--warn-soft);color:var(--warn)}
+.tag.man{background:var(--surface-2);color:var(--muted);border:1px solid var(--line)}
+.add{display:flex;gap:8px}
+.add input{flex:1}
+.nav{display:flex;gap:8px;justify-content:space-between;flex-wrap:wrap}
+.errors{background:var(--bad-soft);color:var(--bad);border-radius:var(--r);padding:8px 10px;font-size:.88rem}
+.okmsg{background:var(--ok-soft);color:var(--ok);border-radius:var(--r);padding:8px 10px;font-size:.88rem}
+.choices{display:flex;flex-wrap:wrap;gap:8px}
+.choice{display:flex;gap:8px;align-items:center;border:1px solid var(--line);border-radius:var(--r);padding:8px 12px;cursor:pointer;background:var(--surface)}
+.choice.on{border-color:var(--accent);background:var(--accent-soft)}
+.group{display:flex;flex-direction:column;gap:6px}
+.hint{font-size:.82rem;color:var(--muted)}
+
+.tree,.tree ul{list-style:none;margin:0;padding:0}
+.tree{display:flex;flex-direction:column;gap:6px;font-size:.9rem}
+.tree ul{margin:4px 0 0 8px;padding-left:12px;border-left:2px solid var(--line);display:flex;flex-direction:column;gap:4px}
+.tree .k{font-size:.68rem;font-weight:600;text-transform:uppercase;letter-spacing:.04em;color:var(--muted);margin-right:6px}
+.tree li{overflow-wrap:anywhere}
+
+.matrix{display:flex;flex-direction:column;gap:8px}
+.quad{border:1px solid var(--line);border-left-width:4px;border-radius:var(--r);padding:10px 12px;display:flex;flex-direction:column;gap:8px;min-width:0}
+.quad.q1{background:var(--bad-soft);border-left-color:var(--bad)} .quad.q2{background:var(--warn-soft);border-left-color:var(--warn)} .quad.q3{background:var(--q2);border-left-color:var(--accent)} .quad.q4{background:var(--q4)}
+.quad .lane{display:flex;gap:10px;align-items:center}
+.quad .pn{flex:none;font-family:var(--font-display);font-weight:700;font-size:1.5rem;line-height:1;width:2.2rem;height:2.2rem;display:grid;place-items:center;border-radius:var(--r);background:var(--surface);border:1px solid var(--line)}
+.quad .chips{display:grid;grid-template-columns:repeat(auto-fill,minmax(200px,1fr))}
+.quad h3{line-height:1.05}
+.quad .qh{font-size:.74rem;color:var(--muted)}
+.chips{display:flex;flex-direction:column;gap:6px}
+.chip{display:flex;flex-direction:column;align-items:flex-start;gap:3px;text-align:left;width:100%;background:var(--surface);padding:6px 8px;font-size:.82rem;overflow-wrap:anywhere}
+.chip[aria-pressed="true"]{border-color:var(--accent);box-shadow:0 0 0 1px var(--accent)}
+.chip.recusado .nm{text-decoration:line-through;color:var(--muted)}
+.chip .id{font-size:.7rem;color:var(--muted);font-variant-numeric:tabular-nums}
+.pill{display:inline-flex;align-items:center;gap:5px;font-size:.7rem;font-weight:600;padding:2px 7px;border-radius:99px;white-space:nowrap}
+.pill::before{content:"";width:7px;height:7px;border-radius:50%;background:currentColor}
+.pill.aprovado{background:var(--ok-soft);color:var(--ok)}
+.pill.analise{background:var(--warn-soft);color:var(--warn)}
+.pill.recusado{background:var(--bad-soft);color:var(--bad)}
+.detail{border-top:1px solid var(--line);padding-top:14px;display:flex;flex-direction:column;gap:10px}
+.detail-head{display:flex;flex-wrap:wrap;gap:6px 12px;align-items:center;justify-content:space-between}
+.row{display:flex;flex-wrap:wrap;gap:8px;align-items:center}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <nav class="tabs" id="topnav" aria-label="Telas principais">
+    <button type="button" id="top-servicos" data-go="servicos">Serviços</button>
+    <button type="button" id="top-clientes" data-go="clientes">Clientes</button>
+  </nav>
+  <header class="ws" id="ws" hidden>
+    <div class="who"><span class="avatar" id="ws-avatar" aria-hidden="true"></span><div class="who-t"><strong id="ws-name"></strong><span class="sub" id="ws-profile"></span></div></div>
+    <button type="button" data-go="clientes">Sair do perfil</button>
+  </header>
+  <nav class="tabs" id="tabs" aria-label="Telas do cliente" hidden>
+    <button type="button" id="tab-registro" data-go="registro">Novo registro</button>
+    <button type="button" id="tab-matriz" data-go="matriz">Serviços do cliente</button>
+  </nav>
+
+  <section class="panel" id="all-panel" aria-labelledby="all-title">
+    <div class="panel-head">
+      <div><h1 id="all-title">Serviços</h1><p class="sub" id="all-sub"></p></div>
+      <button type="button" id="f-clear">Limpar filtros</button>
+    </div>
+    <div class="filters">
+      <div class="field"><label for="f-q">Buscar</label><input type="text" id="f-q" placeholder="Equipamento, setor, OS ou cliente" autocomplete="off"></div>
+      <div class="field"><label for="f-client">Cliente</label><select id="f-client"></select></div>
+      <div class="field"><label for="f-prio">Prioridade</label><select id="f-prio"><option value="">Todas</option><option value="1">1 · Atender primeiro</option><option value="2">2 · Atender em seguida</option><option value="3">3 · Programar</option><option value="4">4 · Fila normal</option></select></div>
+      <div class="field"><label for="f-budget">Orçamento</label><select id="f-budget"><option value="">Todos</option><option value="aprovado">Aprovado</option><option value="analise">Análise</option><option value="recusado">Recusado</option></select></div>
+    </div>
+    <div id="all-list"></div>
+  </section>
+
+  <section class="panel" id="client-panel" aria-labelledby="client-title">
+    <div class="panel-head">
+      <div><h1 id="client-title">Clientes</h1><p class="sub">Entre em um perfil para registrar equipamentos e acompanhar os serviços dele.</p></div>
+      <div class="row"><button type="button" id="clear-examples">Limpar exemplos</button><button type="button" id="load-examples">Carregar exemplos</button><button type="button" class="primary" id="new-client">Novo cliente</button></div>
+    </div>
+    <div id="client-form"></div>
+    <div id="client-manage"></div>
+  </section>
+
+  <div class="cols">
+    <section class="panel" id="form-panel" aria-labelledby="form-title">
+      <div class="panel-head">
+        <h2 id="form-title">Novo registro</h2>
+        <label class="switch" for="toggle-sug"><input type="checkbox" id="toggle-sug" checked> Suporte inteligente (sugestões)</label>
+      </div>
+      <div class="fields">
+        <div class="field"><label for="equip">Equipamento</label><input type="text" id="equip" placeholder="Ex.: Compressor CP-02" autocomplete="off"></div>
+        <div class="field"><label for="setor">Setor</label><input type="text" id="setor" placeholder="Ex.: Utilidades" autocomplete="off"></div>
+      </div>
+      <ol class="stepper" id="stepper"></ol>
+      <div id="step-body"></div>
+    </section>
+
+    <section class="panel" aria-labelledby="matrix-title" id="matrix-panel">
+      <div class="panel-head">
+        <h2 id="matrix-title">Serviços do cliente</h2>
+      </div>
+      <p class="sub" id="matrix-sub"></p>
+      <div class="matrix" id="matrix"></div>
+      <div id="detail"></div>
+    </section>
+  </div>
+</div>
+
+<script>
+/* ---------- Base de apoio: ocorrência -> serviços -> peças ---------- */
+const KB = [
+  {key:'oleo', label:'Vazamento de óleo na junta do motor', services:[
+    {label:'Substituição da junta de vedação', parts:['Kit de juntas O-ring','Junta de vedação do cárter']},
+    {label:'Limpeza e inspeção da área do vazamento', parts:['Desengraxante industrial']},
+    {label:'Reposição do nível de óleo', parts:['Óleo lubrificante (1 L)']}]},
+  {key:'temp', label:'Superaquecimento', services:[
+    {label:'Limpeza do sistema de arrefecimento', parts:['Fluido de arrefecimento']},
+    {label:'Troca da ventoinha', parts:['Ventoinha']},
+    {label:'Verificação do sensor de temperatura', parts:['Sensor de temperatura']}]},
+  {key:'ruido', label:'Ruído ou vibração anormal', services:[
+    {label:'Substituição de rolamentos', parts:['Rolamento','Graxa para rolamento']},
+    {label:'Alinhamento e balanceamento do eixo', parts:[]},
+    {label:'Reaperto das fixações', parts:['Parafusos e arruelas']}]},
+  {key:'liga', label:'Equipamento não liga', services:[
+    {label:'Teste da alimentação elétrica', parts:['Fusível']},
+    {label:'Substituição do contator', parts:['Contator']},
+    {label:'Inspeção de cabos e conexões', parts:['Terminais elétricos','Cabo de alimentação']}]},
+  {key:'correia', label:'Correia desgastada ou patinando', services:[
+    {label:'Substituição da correia', parts:['Correia']},
+    {label:'Ajuste do tensionamento', parts:[]}]},
+  {key:'painel', label:'Painel ou display com falha', services:[
+    {label:'Troca do módulo do display', parts:['Módulo do display']},
+    {label:'Reset e reconfiguração do controlador', parts:[]}]},
+  {key:'pressao', label:'Perda de pressão (hidráulica ou pneumática)', services:[
+    {label:'Troca de mangueiras e conexões', parts:['Mangueira','Conexões de engate']},
+    {label:'Substituição do filtro', parts:['Elemento filtrante']},
+    {label:'Teste de estanqueidade', parts:[]}]}
+];
+const KBMAP = Object.fromEntries(KB.map(o => [o.key, o]));
+/* Palavras-chave: só há sugestão quando o texto escrito pelo operador combina com uma delas */
+const KW = {
+  oleo:['oleo','lubrificante'], temp:['superaquec','aquec','esquent','temperatura','quente'],
+  ruido:['ruido','barulho','vibra'], liga:['nao liga','sem energia','nao funciona','nao da partida'],
+  correia:['correia'], painel:['painel','display','tela'], pressao:['pressao','hidraul','pneumat','mangueira']
+};
+const norm = t => t.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '');
+function matchKB(text){
+  const t = norm(text);
+  let best = null, score = 0;
+  Object.keys(KW).forEach(k => { const n = KW[k].filter(w => t.includes(w)).length; if (n > score) { score = n; best = k; } });
+  return best;
+}
+const BUDGET = {
+  aprovado:{label:'Aprovado', note:'Liberado para execução.'},
+  recusado:{label:'Recusado', note:'Arquivado. Não executar.'},
+  analise:{label:'Análise', note:'Aguardando decisão do orçamento.'}
+};
+const QUAD = {
+  'curto-sim':{n:1, name:'Prioridade 1', title:'Atender primeiro', hint:'Prazo curto e o local depende do equipamento.', cls:'q1'},
+  'curto-nao':{n:2, name:'Prioridade 2', title:'Atender em seguida', hint:'Prazo curto, mas o local segue operando sem ele.', cls:'q2'},
+  'normal-sim':{n:3, name:'Prioridade 3', title:'Programar', hint:'O local depende dele, mas o prazo permite agendar.', cls:'q3'},
+  'normal-nao':{n:4, name:'Prioridade 4', title:'Fila normal', hint:'Sem urgência e sem dependência.', cls:'q4'}
+};
+const STEPS = ['Ocorrências','Serviços','Peças','Orçamento'];
+
+/* ---------- Estado em memória ---------- */
+let records = [], clients = [];
+let seq = 0, uid = 0, cuid = 0;
+let active = null, viewAll = false, view = 'servicos', clientForm = null;
+let flt = {q:'', client:'', prio:'', budget:''}, allSel = null, allDel = false;
+let draft = newDraft();
+let showSug = true, editing = null, errors = [], okMsg = '', selected = null, confirmDel = false;
+
+function newDraft(){
+  return {id:null, client: active || '', equip:'', setor:'', step:1,
+    occ: [],
+    svcChecked:{}, partChecked:{}, labels:{}, customSvc:[], customParts:[],
+    budget:null, prazo:null, dep:null};
+}
+const clone = o => JSON.parse(JSON.stringify(o));
+const esc = s => String(s).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+const $ = id => document.getElementById(id);
+
+function services(d){
+  const out = [];
+  d.occ.filter(o => o.checked && KBMAP[o.kb]).forEach(o => {
+    KBMAP[o.kb].services.forEach((s, i) => {
+      const key = o.key + '.s' + i;
+      out.push({key, label:d.labels[key] || s.label, from:o.label, occKey:o.key, suggested:true, parts:s.parts});
+    });
+  });
+  d.customSvc.forEach(c => out.push({key:c.key, label:d.labels[c.key] || c.label, from:null, occKey:null, suggested:false, parts:[]}));
+  return out.map(s => ({...s, checked:!!d.svcChecked[s.key]}));
+}
+function parts(d){
+  const out = [];
+  services(d).filter(s => s.checked).forEach(s => {
+    s.parts.forEach((p, j) => {
+      const key = s.key + '.p' + j;
+      out.push({key, label:d.labels[key] || p, from:s.label, svcKey:s.key, suggested:true});
+    });
+  });
+  d.customParts.forEach(c => out.push({key:c.key, label:d.labels[c.key] || c.label, from:null, svcKey:null, suggested:false}));
+  return out.map(p => ({...p, checked:!!d.partChecked[p.key]}));
+}
+function tree(d){
+  const sv = services(d).filter(s => s.checked);
+  const pt = parts(d).filter(p => p.checked);
+  return {
+    occ: d.occ.filter(o => o.checked).map(o => ({label:o.label,
+      services: sv.filter(s => s.occKey === o.key).map(s => ({label:s.label, parts: pt.filter(p => p.svcKey === s.key).map(p => p.label)}))})),
+    manualSvc: sv.filter(s => !s.occKey).map(s => s.label),
+    manualParts: pt.filter(p => !p.svcKey).map(p => p.label),
+    nOcc: d.occ.filter(o => o.checked).length, nSvc: sv.length, nParts: pt.length
+  };
+}
+function maxStep(d){ const t = tree(d); return !t.nOcc ? 1 : !t.nSvc ? 2 : 4; }
+const quadKey = d => d.prazo && d.dep ? d.prazo + '-' + d.dep : null;
+
+/* ---------- Render do formulário ---------- */
+function itemRow(kind, it, opts){
+  const id = kind + '-' + it.key;
+  if (editing === id) {
+    return `<li class="item"><input type="text" id="edit-input" data-kind="${kind}" data-key="${esc(it.key)}" value="${esc(it.label)}" aria-label="Editar texto"><button type="button" data-act="edit-done">OK</button></li>`;
+  }
+  const tag = opts.tag ? `<span class="tag ${it.suggested ? 'sug' : 'man'}">${it.suggested ? 'sugestão' : 'manual'}</span>` : (it.custom ? '<span class="tag man">manual</span>' : '');
+  const edit = opts.edit ? `<button type="button" class="icon" data-act="edit" data-id="${esc(id)}" aria-label="Editar texto de ${esc(it.label)}">✎</button>` : '';
+  const rm = (it.custom || (opts.tag && !it.suggested)) ? `<button type="button" class="icon" data-act="remove" data-kind="${kind}" data-key="${esc(it.key)}" aria-label="Remover ${esc(it.label)}">✕</button>` : '';
+  return `<li class="item ${it.checked ? 'on' : ''}"><label for="${esc(id)}"><input type="checkbox" id="${esc(id)}" data-kind="${kind}" data-key="${esc(it.key)}" ${it.checked ? 'checked' : ''}><span class="txt">${esc(it.label)}${it.from ? `<small>de: ${esc(it.from)}</small>` : ''}</span></label>${tag}${edit}${rm}</li>`;
+}
+function addRow(kind, ph){
+  return `<div class="add"><input type="text" id="add-${kind}" data-add="${kind}" placeholder="${ph}" aria-label="${ph}"><button type="button" data-act="add" data-kind="${kind}">Adicionar</button></div>`;
+}
+function treeHTML(t){
+  let h = '<ul class="tree">';
+  t.occ.forEach(o => {
+    h += `<li><span class="k">Ocorrência</span>${esc(o.label)}`;
+    if (o.services.length) {
+      h += '<ul>' + o.services.map(s => `<li><span class="k">Serviço</span>${esc(s.label)}${s.parts.length ? '<ul>' + s.parts.map(p => `<li><span class="k">Peça</span>${esc(p)}</li>`).join('') + '</ul>' : ''}</li>`).join('') + '</ul>';
+    }
+    h += '</li>';
+  });
+  if (t.manualSvc.length) h += '<li><span class="k">Serviços manuais</span><ul>' + t.manualSvc.map(s => `<li>${esc(s)}</li>`).join('') + '</ul></li>';
+  if (t.manualParts.length) h += '<li><span class="k">Peças manuais</span><ul>' + t.manualParts.map(p => `<li>${esc(p)}</li>`).join('') + '</ul></li>';
+  return h + '</ul>';
+}
+function choice(name, value, label, current){
+  const on = current === value;
+  return `<label class="choice ${on ? 'on' : ''}" for="${name}-${value}"><input type="radio" name="${name}" id="${name}-${value}" value="${value}" ${on ? 'checked' : ''}>${label}</label>`;
+}
+
+function renderForm(focusId){
+  const d = draft, t = tree(d), max = maxStep(d);
+  if (d.step > max) d.step = max;
+  $('form-title').textContent = d.id ? 'Editando ' + d.id : 'Novo registro';
+  const counts = [t.nOcc, t.nSvc, t.nParts, d.budget ? BUDGET[d.budget].label : ''];
+  $('stepper').innerHTML = STEPS.map((s, i) => {
+    const n = i + 1, done = n < 4 ? counts[i] > 0 : !!d.budget;
+    const c = n < 4 ? counts[i] + (counts[i] === 1 ? ' marcada' : ' marcadas') : (counts[3] || 'pendente');
+    return `<li><button type="button" id="step-${n}" data-act="goto" data-step="${n}" class="${done ? 'done' : ''}" ${n > max ? 'disabled' : ''} ${d.step === n ? 'aria-current="step"' : ''}><span class="n">${n}</span><span class="t">${s}</span><span class="c">${n === 2 ? c.replace('marcada','marcado') : c}</span></button></li>`;
+  }).join('');
+
+  let h = '';
+  if (okMsg) h += `<p class="okmsg" role="status">${esc(okMsg)}</p>`;
+  if (d.step === 1) {
+    h += `<h3>1. Ocorrências</h3><p class="sub">Escreva o que foi relatado, uma ocorrência por vez. É preciso ao menos uma para liberar a etapa de serviços.</p>
+      ${d.occ.length ? `<ul class="items">${d.occ.map(o => itemRow('occ', o, {})).join('')}</ul>` : '<p class="empty">Nenhuma ocorrência escrita ainda.</p>'}${addRow('occ', 'Descreva a ocorrência')}`;
+  } else if (d.step === 2) {
+    let list = services(d);
+    if (!showSug) list = list.filter(s => s.checked || !s.suggested);
+    h += `<h3>2. Serviços</h3>`;
+    h += !showSug ? `<p class="sub">Sugestões desligadas. Adicione os serviços manualmente.</p>` : list.some(x => x.suggested) ? `<p class="note">Rascunho de apoio: sugestões ligadas ao que você escreveu nas ocorrências. Chegam desmarcadas; revise, ajuste o texto (✎) e marque só o que será executado.</p>` : `<p class="sub">Sem sugestões para o que foi escrito. Adicione os serviços manualmente.</p>`; h += true ?  `` : `<p class="sub">Sugestões desligadas. Adicione os serviços manualmente.</p>`;
+    h += list.length ? `<ul class="items">${list.map(s => itemRow('svc', s, {tag:true, edit:true})).join('')}</ul>` : ``;
+    h += addRow('svc', 'Outro serviço');
+  } else if (d.step === 3) {
+    let list = parts(d);
+    if (!showSug) list = list.filter(p => p.checked || !p.suggested);
+    h += `<h3>3. Peças</h3>`;
+    h += !showSug ? `<p class="sub">Sugestões desligadas. Adicione as peças manualmente.</p>` : list.some(x => x.suggested) ? `<p class="note">Rascunho de apoio: peças sugeridas a partir dos serviços que você validou. Confira antes de marcar.</p>` : `<p class="sub">Sem sugestões de peças. Adicione manualmente ou avance sem peças.</p>`; h += true ? `` : `<p class="sub">Sugestões desligadas. Adicione as peças manualmente.</p>`;
+    h += list.length ? `<ul class="items">${list.map(p => itemRow('part', p, {tag:true, edit:true})).join('')}</ul>` : ``;
+    h += addRow('part', 'Outra peça');
+  } else {
+    const q = quadKey(d);
+    h += `<h3>4. Orçamento</h3>
+      <div class="group"><span class="legend">Cadeia validada</span>${treeHTML(t)}</div>
+      <div class="group" role="group" aria-label="Orçamento"><span class="legend">Orçamento</span><div class="choices">
+        ${Object.keys(BUDGET).map(k => `<label class="choice ${d.budget === k ? 'on' : ''}" for="budget-${k}"><input type="checkbox" id="budget-${k}" data-budget="${k}" ${d.budget === k ? 'checked' : ''}>${BUDGET[k].label}</label>`).join('')}
+      </div>${d.budget ? `<span class="hint">${BUDGET[d.budget].note}</span>` : ''}</div>
+      <div class="group" role="radiogroup" aria-label="Prazo do local"><span class="legend">Prioridade de atendimento · prazo do local</span><div class="choices">${choice('prazo','curto','Curto: precisa logo',d.prazo)}${choice('prazo','normal','Pode esperar',d.prazo)}</div></div>
+      <div class="group" role="radiogroup" aria-label="Dependência"><span class="legend">Prioridade de atendimento · dependência</span><div class="choices">${choice('dep','sim','O local depende dele',d.dep)}${choice('dep','nao','Não depende',d.dep)}</div></div>
+      <p class="hint">${q ? '<strong>' + QUAD[q].name + ' · ' + QUAD[q].title + '</strong>. ' + QUAD[q].hint : 'Marque prazo e dependência para definir a prioridade de atendimento.'}</p>`;
+    if (errors.length) h += `<div class="errors" role="alert">Falta: ${errors.map(esc).join('; ')}.</div>`;
+  }
+  h += `<div class="nav"><div class="row">${d.step > 1 ? '<button type="button" data-act="back">Voltar</button>' : ''}${d.id ? '<button type="button" data-act="cancel">Cancelar edição</button>' : ''}</div>`;
+  h += d.step < 4 ? `<button type="button" class="primary" id="btn-next" data-act="next" ${d.step >= max ? 'disabled' : ''}>Avançar para ${STEPS[d.step]}</button>` : `<button type="button" class="primary" id="btn-save" data-act="save">${d.id ? 'Salvar alterações' : 'Registrar equipamento'}</button>`;
+  h += '</div>';
+  $('step-body').innerHTML = h;
+  const f = focusId && $(focusId);
+  if (f) { f.focus(); if (f.id === 'edit-input') f.select(); }
+}
+
+/* ---------- Clientes ---------- */
+const clientOf = id => clients.find(c => c.id === id);
+const clientName = id => { const c = clientOf(id); return c ? c.name : 'Sem cliente'; };
+const VIEWS = {servicos:'all-panel', clientes:'client-panel', registro:'form-panel', matriz:'matrix-panel'};
+const initials = n => n.trim().split(/\s+/).slice(0, 2).map(w => w[0]).join('').toUpperCase();
+function renderChrome(){
+  const c = clientOf(active);
+  if (!c && (view === 'registro' || view === 'matriz')) view = 'clientes';
+  Object.keys(VIEWS).forEach(v => { $(VIEWS[v]).hidden = view !== v; });
+  const inside = view === 'registro' || view === 'matriz';
+  $('ws').hidden = !inside; $('tabs').hidden = !inside; $('topnav').hidden = inside;
+  ['servicos', 'clientes'].forEach(v => {
+    const t = $('top-' + v);
+    if (view === v) t.setAttribute('aria-current', 'page'); else t.removeAttribute('aria-current');
+  });
+  ['registro', 'matriz'].forEach(v => {
+    const t = $('tab-' + v);
+    if (view === v) t.setAttribute('aria-current', 'page'); else t.removeAttribute('aria-current');
+  });
+  if (c) {
+    $('ws-name').textContent = c.name;
+    $('ws-profile').textContent = 'Perfil: ' + c.profile + (c.contact ? ' · ' + c.contact : '');
+    $('ws-avatar').textContent = initials(c.name);
+    $('tab-matriz').textContent = 'Serviços do cliente (' + records.filter(r => r.draft.client === c.id).length + ')';
+  }
+}
+function go(v){
+  view = v;
+  renderChrome();
+  try { if (location.hash !== '#' + view) location.hash = view; } catch (e) {}
+  window.scrollTo(0, 0);
+}
+function openClient(id){
+  active = id;
+  if (draft.client !== id) resetDraft();
+  selected = null; confirmDel = false; okMsg = '';
+  renderForm(); renderMatrix(); renderClients();
+  go('registro');
+}
+function renderClients(){
+  const pill = (b, n) => n ? `<span class="pill ${b}">${n} ${BUDGET[b].label.toLowerCase()}</span>` : '';
+  $('client-manage').innerHTML = clients.length ? '<ul class="cards">' + clients.map(c => {
+    const rs = records.filter(r => r.draft.client === c.id), n = b => rs.filter(r => r.draft.budget === b).length;
+    return `<li class="card ${c.id === active ? 'on' : ''}">
+      <div class="who"><span class="avatar" aria-hidden="true">${esc(initials(c.name))}</span><div class="who-t"><strong>${esc(c.name)}</strong><span class="sub">${esc(c.profile)}${c.example ? ' · exemplo' : ''}</span></div></div>
+      ${c.contact || c.note ? `<span class="meta">${esc([c.contact, c.note].filter(Boolean).join(' · '))}</span>` : ''}
+      <div class="row"><span class="meta">${rs.length} serviço(s)</span>${pill('aprovado', n('aprovado'))}${pill('analise', n('analise'))}${pill('recusado', n('recusado'))}</div>
+      <div class="row"><button type="button" class="primary" data-copen="${c.id}">Entrar</button><button type="button" data-cedit="${c.id}">Editar perfil</button><button type="button" class="danger" data-cdel="${c.id}" ${rs.length ? 'disabled title="Exclua os serviços deste cliente antes"' : ''}>Excluir</button></div></li>`;
+  }).join('') + '</ul>' : '<p class="empty">Nenhum cliente cadastrado. Toque em "Novo cliente" para criar o primeiro perfil.</p>';
+  const f = clientForm, c = f && f.id ? clientOf(f.id) : null, v = k => c ? esc(c[k] || '') : '';
+  $('new-client').hidden = !!f;
+  $('load-examples').hidden = clients.length > 0;
+  $('client-form').innerHTML = !f ? '' : `<div class="pform"><h3>${c ? 'Editar perfil de ' + esc(c.name) : 'Novo perfil de cliente'}</h3>
+    <div class="fields"><div class="field"><label for="pf-name">Nome</label><input type="text" id="pf-name" value="${v('name')}" placeholder="Nome do cliente" autocomplete="off"></div>
+    <div class="field"><label for="pf-profile">Tipo de perfil</label><input type="text" id="pf-profile" value="${v('profile')}" list="profiles" placeholder="Ex.: Indústria" autocomplete="off"><datalist id="profiles"><option value="Indústria"><option value="Comércio"><option value="Autônomo"><option value="Pessoa física"></datalist></div></div>
+    <div class="fields"><div class="field"><label for="pf-contact">Contato (opcional)</label><input type="text" id="pf-contact" value="${v('contact')}" placeholder="Telefone ou e-mail" autocomplete="off"></div>
+    <div class="field"><label for="pf-note">Observação (opcional)</label><input type="text" id="pf-note" value="${v('note')}" placeholder="Ex.: atende só à tarde" autocomplete="off"></div></div>
+    <div class="errors" id="pf-err" role="alert" hidden></div>
+    <div class="row"><button type="button" class="primary" id="pf-save">${c ? 'Salvar perfil' : 'Criar perfil'}</button><button type="button" id="pf-cancel">Cancelar</button></div></div>`;
+  renderChrome();
+}
+function saveClient(){
+  const val = id => $(id).value.trim();
+  const name = val('pf-name'), profile = val('pf-profile'), id0 = clientForm.id;
+  const err = !name ? 'Informe o nome do cliente.' : !profile ? 'Informe o tipo de perfil.' : clients.some(c => c.id !== id0 && c.name.toLowerCase() === name.toLowerCase()) ? 'Já existe um cliente com esse nome.' : '';
+  if (err) { $('pf-err').textContent = err; $('pf-err').hidden = false; $(name ? 'pf-profile' : 'pf-name').focus(); return; }
+  const data = {name, profile, contact: val('pf-contact'), note: val('pf-note')};
+  if (id0) Object.assign(clientOf(id0), data, {example:false});
+  else clients.push({id:'c' + (++cuid), example:false, ...data});
+  clientForm = null;
+  renderClients(); renderMatrix();
+}
+
+/* ---------- Tela inicial: todos os serviços ---------- */
+function renderAll(){
+  if (flt.client && !clientOf(flt.client)) flt.client = '';
+  $('f-client').innerHTML = '<option value="">Todos</option>' + clients.map(c => `<option value="${c.id}">${esc(c.name)}</option>`).join('');
+  $('f-client').value = flt.client; $('f-prio').value = flt.prio; $('f-budget').value = flt.budget;
+  const q = flt.q.trim().toLowerCase();
+  const list = records.filter(r => {
+    const d = r.draft;
+    return (!flt.client || d.client === flt.client) && (!flt.budget || d.budget === flt.budget) &&
+      (!flt.prio || String(QUAD[quadKey(d)].n) === flt.prio) &&
+      (!q || [r.id, d.equip, d.setor, clientName(d.client)].join(' ').toLowerCase().includes(q));
+  }).sort((a, b) => QUAD[quadKey(a.draft)].n - QUAD[quadKey(b.draft)].n || a.id.localeCompare(b.id));
+  const filtered = !!(q || flt.client || flt.prio || flt.budget);
+  $('f-clear').hidden = !filtered;
+  $('all-sub').textContent = records.length ? `${list.length} de ${records.length} serviço(s), de todos os clientes, por prioridade de atendimento.` : 'Todos os serviços de todos os clientes em um só lugar.';
+  if (!list.length) {
+    $('all-list').innerHTML = records.length ? '<p class="empty">Nenhum serviço com esses filtros.</p>'
+      : '<p class="empty">Nenhum serviço registrado ainda. Cadastre um cliente, entre no perfil dele e faça o primeiro registro.</p><div class="row"><button type="button" class="primary" data-go="clientes">Ir para Clientes</button></div>';
+    return;
+  }
+  $('all-list').innerHTML = '<ul class="srows">' + list.map(r => {
+    const d = r.draft, p = QUAD[quadKey(d)], open = allSel === r.id;
+    let h = `<li class="srow ${p.cls}"><button type="button" class="shead" data-all="${r.id}" aria-expanded="${open}"><span class="pn" title="${p.name}">${p.n}</span><span class="who-t"><strong>${esc(d.equip)}</strong><span class="meta">${r.id} · ${esc(clientName(d.client))}${d.setor ? ' · ' + esc(d.setor) : ''}${r.example ? ' · exemplo' : ''}</span></span><span class="pill ${d.budget}">${BUDGET[d.budget].label}</span></button>`;
+    if (open) {
+      h += `<div class="sbody"><p class="hint"><strong>${p.name} · ${p.title}</strong>. ${p.hint} ${BUDGET[d.budget].note}</p>${treeHTML(tree(d))}
+        <div class="row"><label class="legend" for="ab-${r.id}">Orçamento</label><select id="ab-${r.id}" data-abudget="${r.id}">${Object.keys(BUDGET).map(k => `<option value="${k}" ${d.budget === k ? 'selected' : ''}>${BUDGET[k].label}</option>`).join('')}</select></div>
+        <div class="row">${allDel ? `<button type="button" class="danger" data-adel-yes="${r.id}">Confirmar exclusão</button><button type="button" data-adel-no="1">Manter</button>` : `<button type="button" data-aedit="${r.id}">Editar registro</button><button type="button" data-aopen="${d.client}">Abrir perfil do cliente</button><button type="button" class="danger" data-adel="${r.id}">Excluir</button>`}</div></div>`;
+    }
+    return h + '</li>';
+  }).join('') + '</ul>';
+}
+
+/* ---------- Render da matriz ---------- */
+function renderMatrix(){
+  renderAll();
+  const vis = records.filter(r => viewAll || r.draft.client === active);
+  const by = k => vis.filter(r => quadKey(r.draft) === k);
+  $('matrix-sub').textContent = 'Fila por prioridade de atendimento · ' + (viewAll ? 'todos os clientes' : clientName(active)) + ' · ' + vis.length + ' registro(s). Toque em um registro para ver a cadeia.';
+  const quad = k => {
+    const q = QUAD[k], list = by(k);
+    return `<div class="quad ${q.cls}"><div class="lane"><span class="pn" aria-hidden="true">${q.n}</span><div><h3>${q.name} · ${q.title}</h3><span class="qh">${q.hint}</span></div></div><div class="chips">${
+      list.length ? list.map(r => `<button type="button" class="chip ${r.draft.budget}" data-rec="${r.id}" aria-pressed="${selected === r.id}"><span class="id">${r.id}${r.example ? ' · exemplo' : ''}</span><span class="nm">${esc(r.draft.equip)}</span>${viewAll ? `<span class="cl">${esc(clientName(r.draft.client))}</span>` : ''}<span class="pill ${r.draft.budget}">${BUDGET[r.draft.budget].label}</span></button>`).join('') : '<span class="qh">Vazio</span>'
+    }</div></div>`;
+  };
+  $('matrix').innerHTML =
+Object.keys(QUAD).map(quad).join('');
+  $('clear-examples').hidden = !records.some(r => r.example) && !clients.some(c => c.example);
+  const r = vis.find(x => x.id === selected);
+  if (!r) { $('detail').innerHTML = ''; return; }
+  const d = r.draft, q = QUAD[quadKey(d)];
+  $('detail').innerHTML = `<div class="detail"><div class="detail-head"><div><h3>${r.id} · ${esc(d.equip)}</h3><span class="sub">${esc(clientName(d.client))}${clientOf(d.client) ? ' (' + esc(clientOf(d.client).profile) + ')' : ''} · ${d.setor ? esc(d.setor) + ' · ' : ''}${q.name} · ${q.title}</span></div><span class="pill ${d.budget}">${BUDGET[d.budget].label}</span></div>
+    <p class="hint">${BUDGET[d.budget].note}</p>${treeHTML(tree(d))}
+    <div class="row">${confirmDel ? '<button type="button" class="danger" data-dact="del-yes">Confirmar exclusão</button><button type="button" data-dact="del-no">Manter</button>' : '<button type="button" data-dact="edit">Editar</button><button type="button" class="danger" data-dact="del">Excluir</button>'}</div></div>`;
+}
+
+/* ---------- Ações ---------- */
+function commitEdit(){
+  const el = $('edit-input');
+  if (!editing || !el) return;
+  const v = el.value.trim();
+  if (v) draft.labels[el.dataset.key] = v;
+  editing = null;
+}
+function addItem(kind){
+  const el = $('add-' + kind), v = el.value.trim();
+  if (!v) { el.focus(); return; }
+  const key = 'x' + (++uid);
+  if (kind === 'occ') draft.occ.push({key, label:v, custom:true, checked:true, kb:matchKB(v)});
+  if (kind === 'svc') { draft.customSvc.push({key, label:v}); draft.svcChecked[key] = true; }
+  if (kind === 'part') { draft.customParts.push({key, label:v}); draft.partChecked[key] = true; }
+  renderForm('add-' + kind);
+}
+function save(){
+  const d = draft;
+  errors = [];
+  if (!d.client) errors.push('cliente');
+  if (!d.equip.trim()) errors.push('nome do equipamento');
+  if (!d.budget) errors.push('situação do orçamento');
+  if (!d.prazo) errors.push('prazo do local');
+  if (!d.dep) errors.push('dependência');
+  if (errors.length) { renderForm(); if (!d.equip.trim()) $('equip').focus(); return; }
+  let id = d.id;
+  if (id) { const r = records.find(x => x.id === id); r.draft = clone(d); r.example = false; }
+  else { id = 'OS-' + String(++seq).padStart(4, '0'); const c = clone(d); c.id = id; records.push({id, example:false, draft:c}); }
+  okMsg = id + (d.id ? ' atualizada em ' : ' registrada em ') + QUAD[quadKey(d)].name + '. Veja em Serviços do cliente.';
+  selected = id; confirmDel = false;
+  resetDraft();
+  renderMatrix();
+  renderClients();
+}
+function resetDraft(){
+  draft = newDraft(); errors = []; editing = null;
+  $('equip').value = ''; $('setor').value = '';
+  renderForm();
+}
+
+$('step-body').addEventListener('change', e => {
+  const t = e.target, d = draft;
+  okMsg = '';
+  if (t.type === 'checkbox' && t.dataset.kind) {
+    const k = t.dataset.key;
+    if (t.dataset.kind === 'occ') d.occ.find(o => o.key === k).checked = t.checked;
+    if (t.dataset.kind === 'svc') d.svcChecked[k] = t.checked;
+    if (t.dataset.kind === 'part') d.partChecked[k] = t.checked;
+    renderForm(t.id);
+  } else if (t.dataset.budget) {
+    d.budget = t.checked ? t.dataset.budget : null; errors = [];
+    renderForm(t.id);
+  } else if (t.name === 'prazo' || t.name === 'dep') {
+    d[t.name] = t.value; errors = [];
+    renderForm(t.id);
+  }
+});
+$('step-body').addEventListener('click', e => {
+  const b = e.target.closest('button[data-act]');
+  if (!b) return;
+  const a = b.dataset.act, d = draft;
+  okMsg = '';
+  if (a === 'next') { d.step = Math.min(4, d.step + 1); renderForm('step-' + d.step); }
+  else if (a === 'back') { d.step = Math.max(1, d.step - 1); errors = []; renderForm('step-' + d.step); }
+  else if (a === 'add') addItem(b.dataset.kind);
+  else if (a === 'edit') { editing = b.dataset.id; renderForm('edit-input'); }
+  else if (a === 'edit-done') { commitEdit(); renderForm(); }
+  else if (a === 'remove') {
+    const k = b.dataset.key, kind = b.dataset.kind;
+    if (kind === 'occ') d.occ = d.occ.filter(o => o.key !== k);
+    if (kind === 'svc') { d.customSvc = d.customSvc.filter(c => c.key !== k); delete d.svcChecked[k]; }
+    if (kind === 'part') { d.customParts = d.customParts.filter(c => c.key !== k); delete d.partChecked[k]; }
+    renderForm('add-' + kind);
+  }
+  else if (a === 'save') save();
+  else if (a === 'cancel') resetDraft();
+});
+$('stepper').addEventListener('click', e => {
+  const b = e.target.closest('button[data-step]');
+  if (!b || b.disabled) return;
+  okMsg = ''; errors = []; draft.step = +b.dataset.step; renderForm('step-' + draft.step);
+});
+$('step-body').addEventListener('keydown', e => {
+  if (e.key !== 'Enter') return;
+  if (e.target.dataset.add) { e.preventDefault(); addItem(e.target.dataset.add); }
+  else if (e.target.id === 'edit-input') { e.preventDefault(); commitEdit(); renderForm(); }
+});
+$('step-body').addEventListener('focusout', e => {
+  if (e.target.id === 'edit-input' && editing) { commitEdit(); renderForm(); }
+});
+$('equip').addEventListener('input', e => { draft.equip = e.target.value; });
+$('setor').addEventListener('input', e => { draft.setor = e.target.value; });
+document.addEventListener('click', e => {
+  const b = e.target.closest('button[data-go]');
+  if (b && !b.disabled) go(b.dataset.go);
+});
+window.addEventListener('hashchange', () => {
+  const v = location.hash.slice(1);
+  if (VIEWS[v] && v !== view) { view = v; renderChrome(); }
+});
+$('client-panel').addEventListener('click', e => {
+  const b = e.target.closest('button');
+  if (!b || b.disabled) return;
+  if (b.id === 'load-examples') { loadExamples(); return; }
+  if (b.id === 'new-client') { clientForm = {id:null}; renderClients(); $('pf-name').focus(); }
+  else if (b.id === 'pf-save') saveClient();
+  else if (b.id === 'pf-cancel') { clientForm = null; renderClients(); }
+  else if (b.dataset.copen) { clientForm = null; openClient(b.dataset.copen); }
+  else if (b.dataset.cedit) { clientForm = {id:b.dataset.cedit}; renderClients(); $('pf-name').focus(); $('client-form').scrollIntoView({block:'nearest'}); }
+  else if (b.dataset.cdel) {
+    const id = b.dataset.cdel;
+    clients = clients.filter(c => c.id !== id);
+    if (clientForm && clientForm.id === id) clientForm = null;
+    if (active === id) { active = null; resetDraft(); }
+    renderClients(); renderMatrix();
+  }
+});
+$('client-form').addEventListener('keydown', e => { if (e.key === 'Enter' && e.target.tagName === 'INPUT') { e.preventDefault(); saveClient(); } });
+$('f-q').addEventListener('input', e => { flt.q = e.target.value; renderAll(); });
+[['f-client', 'client'], ['f-prio', 'prio'], ['f-budget', 'budget']].forEach(([id, k]) => $(id).addEventListener('change', e => { flt[k] = e.target.value; allDel = false; renderAll(); }));
+$('f-clear').addEventListener('click', () => { flt = {q:'', client:'', prio:'', budget:''}; $('f-q').value = ''; renderAll(); });
+$('all-list').addEventListener('change', e => {
+  const id = e.target.dataset.abudget;
+  if (!id) return;
+  records.find(r => r.id === id).draft.budget = e.target.value;
+  renderMatrix(); renderClients();
+  const el = $('ab-' + id); if (el) el.focus();
+});
+$('all-list').addEventListener('click', e => {
+  const b = e.target.closest('button');
+  if (!b) return;
+  const ds = b.dataset;
+  if (ds.all) { allSel = allSel === ds.all ? null : ds.all; allDel = false; renderAll(); }
+  else if (ds.aopen) openClient(ds.aopen);
+  else if (ds.adel) { allDel = true; renderAll(); }
+  else if (ds.adelNo) { allDel = false; renderAll(); }
+  else if (ds.adelYes) {
+    records = records.filter(r => r.id !== ds.adelYes);
+    if (draft.id === ds.adelYes) resetDraft();
+    if (selected === ds.adelYes) selected = null;
+    allSel = null; allDel = false;
+    renderMatrix(); renderClients();
+  }
+  else if (ds.aedit) {
+    const r = records.find(x => x.id === ds.aedit);
+    active = r.draft.client;
+    draft = clone(r.draft); draft.step = 1; errors = []; okMsg = ''; editing = null;
+    $('equip').value = draft.equip; $('setor').value = draft.setor;
+    renderForm(); renderMatrix(); renderClients();
+    go('registro');
+  }
+});
+$('toggle-sug').addEventListener('change', e => { showSug = e.target.checked; renderForm(); });
+$('matrix').addEventListener('click', e => {
+  const b = e.target.closest('button[data-rec]');
+  if (!b) return;
+  selected = selected === b.dataset.rec ? null : b.dataset.rec; confirmDel = false;
+  renderMatrix();
+});
+$('detail').addEventListener('click', e => {
+  const b = e.target.closest('button[data-dact]');
+  if (!b) return;
+  const a = b.dataset.dact, r = records.find(x => x.id === selected);
+  if (!r) return;
+  if (a === 'del') { confirmDel = true; renderMatrix(); }
+  else if (a === 'del-no') { confirmDel = false; renderMatrix(); }
+  else if (a === 'del-yes') {
+    records = records.filter(x => x.id !== r.id);
+    if (draft.id === r.id) resetDraft();
+    selected = null; confirmDel = false; renderMatrix(); renderClients();
+  }
+  else if (a === 'edit') {
+    active = r.draft.client;
+    draft = clone(r.draft); draft.step = 1; errors = []; okMsg = ''; editing = null;
+    $('equip').value = draft.equip; $('setor').value = draft.setor;
+    renderForm(); renderMatrix(); renderClients();
+    go('registro');
+  }
+});
+$('clear-examples').addEventListener('click', () => {
+  records = records.filter(r => !r.example);
+  if (!records.some(r => r.id === selected)) selected = null;
+  clients = clients.filter(c => !c.example || records.some(r => r.draft.client === c.id));
+  if (clientForm && clientForm.id && !clientOf(clientForm.id)) clientForm = null;
+  if (active && !clientOf(active)) { active = null; selected = null; draft = newDraft(); }
+  if (draft.id && !records.some(r => r.id === draft.id)) resetDraft();
+  renderMatrix(); renderClients();
+});
+
+/* ---------- Exemplos iniciais (marcados como exemplo) ---------- */
+function seed(client, equip, setor, occ, svc, part, budget, prazo, dep){
+  const d = newDraft();
+  d.client = client; d.equip = equip; d.setor = setor; d.budget = budget; d.prazo = prazo; d.dep = dep;
+  d.occ = occ.map(k => ({key:k, label:KBMAP[k].label, custom:true, checked:true, kb:k}));
+  svc.forEach(k => { d.svcChecked[k] = true; });
+  part.forEach(k => { d.partChecked[k] = true; });
+  d.id = 'OS-' + String(++seq).padStart(4, '0');
+  records.push({id:d.id, example:true, draft:d});
+}
+function loadExamples(){
+clients.push({id:'c1', name:'Metalúrgica Tapajós', profile:'Indústria', contact:'manutencao@tapajos.example', note:'Atendimento em horário de turno', example:true}, {id:'c2', name:'Padaria Ver-o-Peso', profile:'Comércio', contact:'', note:'Atender antes das 10h', example:true}, {id:'c3', name:'Oficina do Raimundo', profile:'Autônomo', contact:'', note:'', example:true});
+cuid = Math.max(cuid, 3);
+seed('c1', 'Compressor de parafuso CP-02', 'Utilidades', ['oleo'], ['oleo.s0','oleo.s2'], ['oleo.s0.p0','oleo.s2.p0'], 'aprovado', 'curto', 'sim');
+seed('c1', 'Esteira transportadora ET-07', 'Expedição', ['correia','ruido'], ['correia.s0','ruido.s0'], ['correia.s0.p0','ruido.s0.p0','ruido.s0.p1'], 'analise', 'normal', 'sim');
+seed('c2', 'Painel da masseira MS-01', 'Produção', ['painel'], ['painel.s1'], [], 'aprovado', 'curto', 'nao');
+seed('c3', 'Elevador hidráulico EH-11', 'Oficina', ['pressao'], ['pressao.s0','pressao.s1'], ['pressao.s0.p0','pressao.s1.p0'], 'recusado', 'normal', 'nao');
+  renderMatrix(); renderClients();
+}
+selected = null;
+
+renderForm();
+renderMatrix();
+renderClients();
+if (VIEWS[location.hash.slice(1)]) { view = location.hash.slice(1); renderChrome(); }
+</script>
+</body>
+</html>
